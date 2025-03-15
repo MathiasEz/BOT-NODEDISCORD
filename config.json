@@ -2,7 +2,7 @@
     "token": "",
     "language": "es",
     "prefix": "!",
-    "mongodbUri": "",
+    "mongodbUri": "mongodb+srv://MathiasEz:MathiasEz2022@discordbot.ssi1e.mongodb.net/?retryWrites=true&w=majority&appName=DiscordBot",
     "excessCommands": {
         "utility": true,
         "other": true,
