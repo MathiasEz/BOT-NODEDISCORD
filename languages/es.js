@@ -115,7 +115,7 @@ const esLang = {
   nowPlayingNoSongTitle: "¡Ups!",
   nowPlayingNoSong: 'No hay ninguna canción reproduciéndose actualmente.',
   nowPlayingTitle: "Reproduciendo ahora...",
-  nowPlayingDescriptionText: 'Aquí la información sobre la canción que se está reproduciendo actualmente.',
+  nowPlayingDescriptionText: 'Reproduciendo: ',
   nowPlayingFooterText: 'Reproductor Distube',
   nowPlayingDuration: 'Duración',
   nowPlayingRequestedBy: 'Solicitado por',
