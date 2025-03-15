@@ -82,18 +82,18 @@ module.exports = {
                         .setAuthor({ name: 'Server Info', iconURL: server.iconURL({ dynamic: true }) })
                         .setThumbnail(server.iconURL({ dynamic: true, size: 1024 }))
                         .addFields([
-                            { name: '📛 Server Name', value: `\`${server.name}\``, inline: true },
-                            { name: '👑 Owner', value: `<@${owner.id}>`, inline: true },
-                            { name: '🆔 Server ID', value: `\`${server.id}\``, inline: true },
-                            { name: '👥 Members', value: `\`${server.memberCount}\``, inline: true },
+                            { name: '📛 Nombre del Servidor', value: `\`${server.name}\``, inline: true },
+                            { name: '👑 Dueño', value: `<@${owner.id}>`, inline: true },
+                            { name: '🆔 ID del Servidor', value: `\`${server.id}\``, inline: true },
+                            { name: '👥 Miembros', value: `\`${server.memberCount}\``, inline: true },
                             { name: '🤖 Bots', value: `\`${server.members.cache.filter(m => m.user.bot).size}\``, inline: true },
                             { name: '🚀 Boosts', value: `\`${boostCount} (Level ${boostLevel})\``, inline: true },
-                            { name: '📂 Categories', value: `\`${categories}\``, inline: true },
-                            { name: '💬 Text Channels', value: `\`${textChannels}\``, inline: true },
-                            { name: '🔊 Voice Channels', value: `\`${voiceChannels}\``, inline: true },
+                            { name: '📂 Categorias', value: `\`${categories}\``, inline: true },
+                            { name: '💬 Canales de Texto', value: `\`${textChannels}\``, inline: true },
+                            { name: '🔊 Canales de Voz', value: `\`${voiceChannels}\``, inline: true },
                             { name: '🎭 Roles', value: `\`${roles.size}\``, inline: true },
                             { name: '😀 Emojis', value: `\`${emojis.size}\``, inline: true },
-                            { name: '🆕 Created On', value: `<t:${Math.floor(server.createdTimestamp / 1000)}:F>`, inline: false },
+                            { name: '🆕 Creado', value: `<t:${Math.floor(server.createdTimestamp / 1000)}:F>`, inline: false },
                         ])
                         .setTimestamp(),
 
