@@ -1,7 +1,7 @@
 // This script translates the English language file to Spanish
 // Creating the Spanish language object with translated values
 
-const enLang = {
+const esLang = {
   error: 'Se produjo un error al procesar tu comando.',
   commandDisabled: 'Este comando está actualmente deshabilitado.',
   //channelinfo.js
@@ -727,4 +727,4 @@ const enLang = {
   worldClockErrorMessage: 'Hubo un error al recuperar los datos del reloj mundial.',
 };
 
-module.exports = enLang;
+module.exports = esLang;
