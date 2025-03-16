@@ -1,90 +1,41 @@
-/*
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-                                                 
-  _________ ___ ___ ._______   _________    
- /   _____//   |   \|   \   \ /   /  _  \   
- \_____  \/    ~    \   |\   Y   /  /_\  \  
- /        \    Y    /   | \     /    |    \ 
-/_______  /\___|_  /|___|  \___/\____|__  / 
-        \/       \/                     \/  
-                    
-DISCORD :  https://discord.com/invite/xQF9f9yUEM                   
-YouTube : https://www.youtube.com/@GlaceYT                         
-
-Command Verified : ✓  
-Website        : ssrr.tech  
-Test Passed    : ✓
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-*/
-
-
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
+const esLang = require("../../languages/es")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('choose')
-        .setDescription(lang.chooseDescription)
-        .addStringOption(option =>
-            option.setName('options')
-                .setDescription(lang.chooseOptionsDescription)
-                .setRequired(true)),
+  data: new SlashCommandBuilder()
+    .setName("elegir")
+    .setDescription(esLang.chooseDescription)
+    .addStringOption((option) =>
+      option.setName("opciones").setDescription(esLang.chooseOptionsDescription).setRequired(true),
+    ),
 
-    async execute(interaction) {
-        let sender = interaction.user;
-        let options;
+  async execute(interaction) {
+    const optionsString = interaction.options.getString("opciones")
+    const options = optionsString
+      .split(",")
+      .map((option) => option.trim())
+      .filter((option) => option !== "")
 
-        if (interaction.isCommand && interaction.isCommand()) {
-            options = interaction.options.getString('options').split(',');
-        } else {
-            const message = interaction;
-            sender = message.author;
-            const args = message.content.split(' ');
-            args.shift(); 
-            options = args.join(' ').split(',');
-        }
+    if (options.length < 2) {
+      return interaction.reply({
+        content: "Por favor proporciona al menos dos opciones separadas por comas.",
+        ephemeral: true,
+      })
+    }
 
-        options = options.map(option => option.trim());
+    const randomIndex = Math.floor(Math.random() * options.length)
+    const chosenOption = options[randomIndex]
 
-        let chosenOption;
-        if (options.length === 1 && options[0].includes(' ')) {
-            options = options[0].split(' ');
-            chosenOption = options[Math.floor(Math.random() * options.length)];
-        } else {
-            chosenOption = options[Math.floor(Math.random() * options.length)];
-        }
+    const embed = new EmbedBuilder()
+      .setTitle(esLang.chooseTitle)
+      .setColor("#3498db")
+      .addFields(
+        { name: esLang.chooseOptionsText, value: options.join("\n") },
+        { name: esLang.chooseChosenText, value: chosenOption },
+      )
+      .setTimestamp()
 
-        const embed = new EmbedBuilder()
-            .setColor('#3498db')
-            .setTitle(lang.chooseTitle)
-            .setDescription(`${lang.chooseOptionsText} ${options.join(', ')}\n${lang.chooseChosenText} ${chosenOption}`)
-            .setTimestamp();
+    await interaction.reply({ embeds: [embed] })
+  },
+}
 
-        await interaction.reply({ embeds: [embed] });
-    },
-};
-
-
-/*
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-                                                 
-  _________ ___ ___ ._______   _________    
- /   _____//   |   \|   \   \ /   /  _  \   
- \_____  \/    ~    \   |\   Y   /  /_\  \  
- /        \    Y    /   | \     /    |    \ 
-/_______  /\___|_  /|___|  \___/\____|__  / 
-        \/       \/                     \/  
-                    
-DISCORD :  https://discord.com/invite/xQF9f9yUEM                   
-YouTube : https://www.youtube.com/@GlaceYT                         
-
-Command Verified : ✓  
-Website        : ssrr.tech  
-Test Passed    : ✓
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-*/

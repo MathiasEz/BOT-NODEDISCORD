@@ -1,74 +1,62 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
-const { DisTubeError } = require('distube');
-const musicIcons = require('../../UI/icons/musicicons');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('dstop')
-        .setDescription(lang.stopDescription),
+  data: new SlashCommandBuilder().setName("stop").setDescription("Detiene la cola actual y abandona el canal de voz"),
 
-    async execute(interaction) {
-        const voiceChannel = interaction.member.voice.channel;
+  async execute(interaction, client) {
+    const lang = client.lang
 
-        if (!voiceChannel) {
-            return interaction.reply(lang.stopNoVoiceChannel);
-        }
+    // Verificar si el usuario está en un canal de voz
+    if (!interaction.member.voice.channel) {
+      return interaction.reply({
+        content: lang.stopNoVoiceChannel,
+        ephemeral: true,
+      })
+    }
 
-        const permissions = voiceChannel.permissionsFor(interaction.client.user);
-        if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-            return interaction.reply(lang.stopNoPermissions);
-        }
+    // Verificar permisos
+    const permissions = interaction.member.voice.channel.permissionsFor(interaction.client.user)
+    if (!permissions.has("Connect") || !permissions.has("Speak")) {
+      return interaction.reply({
+        content: lang.stopNoPermissions,
+        ephemeral: true,
+      })
+    }
 
-        try {
-            await interaction.reply(lang.stopInProgress);
+    // Verificar si hay una cola de reproducción
+    const queue = client.distube.getQueue(interaction.guildId)
+    if (!queue) {
+      const embed = new EmbedBuilder()
+        .setTitle(lang.stopNoQueueTitle)
+        .setDescription(lang.stopNoQueueMessage)
+        .setColor("Red")
 
-            // Stop the queue and leave voice channel
-            await interaction.client.distube.stop(voiceChannel);
+      return interaction.reply({ embeds: [embed], ephemeral: true })
+    }
 
-            const stoppedEmbed = new EmbedBuilder()
-                .setColor(0x0000FF)
-                .setAuthor({ 
-                    name: lang.stopSuccessTitle, 
-                    iconURL: musicIcons.stopIcon,
-                    url: "https://discord.gg/xQF9f9yUEM"
-                })
-                .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })   
-                .setDescription(lang.stopSuccessMessage);
+    try {
+      // Informar al usuario que estamos deteniendo la cola
+      await interaction.reply({
+        content: lang.stopInProgress,
+      })
 
-            await interaction.reply({ embeds: [stoppedEmbed] });
-        } catch (error) {
-            console.error(error);
+      // Detener la cola y abandonar el canal de voz
+      queue.stop()
 
-            if (error instanceof DisTubeError && error.code === 'NO_QUEUE') {
-                const noQueueEmbed = new EmbedBuilder()
-                    .setColor(0x0000FF)
-                    .setAuthor({ 
-                        name: lang.stopNoQueueTitle, 
-                        iconURL: musicIcons.wrongIcon,
-                        url: "https://discord.gg/xQF9f9yUEM"
-                    })
-                    .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })   
-                    .setDescription(lang.stopNoQueueMessage);
+      // Crear un embed con la confirmación
+      const embed = new EmbedBuilder()
+        .setTitle(lang.stopSuccessTitle)
+        .setDescription(lang.stopSuccessMessage)
+        .setColor("#3498db")
 
-                await interaction.reply({ embeds: [noQueueEmbed] });
-            } else if (error instanceof DisTubeError && error.code === 'STOPPED') {
-                const alreadyStoppedEmbed = new EmbedBuilder()
-                    .setColor(0x0000FF)
-                    .setAuthor({ 
-                        name: lang.stopAlreadyStoppedTitle, 
-                        iconURL: musicIcons.wrongIcon,
-                        url: "https://discord.gg/xQF9f9yUEM"
-                    })
-                    .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })   
-                    .setDescription(lang.stopAlreadyStoppedMessage);
+      await interaction.editReply({ content: "", embeds: [embed] })
+    } catch (error) {
+      console.error("Error en el comando stop:", error)
+      await interaction.followUp({
+        content: lang.stopErrorMessage,
+        ephemeral: true,
+      })
+    }
+  },
+}
 
-                await interaction.reply({ embeds: [alreadyStoppedEmbed] });
-            } else {
-                const errorMessage = lang.stopErrorMessage;
-                await interaction.reply(errorMessage);
-            }
-        }
-    },
-};

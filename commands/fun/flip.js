@@ -1,66 +1,27 @@
-/*
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-                                                 
-  _________ ___ ___ ._______   _________    
- /   _____//   |   \|   \   \ /   /  _  \   
- \_____  \/    ~    \   |\   Y   /  /_\  \  
- /        \    Y    /   | \     /    |    \ 
-/_______  /\___|_  /|___|  \___/\____|__  / 
-        \/       \/                     \/  
-                    
-DISCORD :  https://discord.com/invite/xQF9f9yUEM                   
-YouTube : https://www.youtube.com/@GlaceYT                         
-
-Command Verified : ✓  
-Website        : ssrr.tech  
-Test Passed    : ✓
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-*/
-
-
-const { SlashCommandBuilder, EmbedBuilder } = require('@discordjs/builders');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
+const esLang = require("../../languages/es")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('flip')
-        .setDescription(lang.flipDescription),
+  data: new SlashCommandBuilder().setName("moneda").setDescription(esLang.flipDescription),
 
-    async execute(interaction) {
-        try {
-            const result = Math.random() < 0.5 ? lang.flipHeads : lang.flipTails;
-            const embed = new EmbedBuilder()
-                .setTitle(lang.flipTitle)
-                .setDescription(`${lang.flipResult} ${result}`)
-                .setColor(0xffcc00);
+  async execute(interaction) {
+    try {
+      const result = Math.random() < 0.5 ? esLang.flipHeads : esLang.flipTails
+      const imageUrl =
+        result === esLang.flipHeads ? "https://i.imgur.com/HyvBH8G.png" : "https://i.imgur.com/fYpS0kP.png"
 
-            await interaction.reply({ embeds: [embed] });
-        } catch (error) {
-            console.error('An error occurred during command execution:', error);
-            await interaction.reply(lang.flipError);
-        }
-    },
-};
+      const embed = new EmbedBuilder()
+        .setTitle(esLang.flipTitle)
+        .setDescription(`${esLang.flipResult} **${result}**!`)
+        .setColor("#FFD700")
+        .setImage(imageUrl)
+        .setTimestamp()
 
-/*
+      await interaction.reply({ embeds: [embed] })
+    } catch (error) {
+      console.error("Error en el comando flip:", error)
+      await interaction.reply({ content: esLang.flipError, ephemeral: true })
+    }
+  },
+}
 
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-                                                 
-  _________ ___ ___ ._______   _________    
- /   _____//   |   \|   \   \ /   /  _  \   
- \_____  \/    ~    \   |\   Y   /  /_\  \  
- /        \    Y    /   | \     /    |    \ 
-/_______  /\___|_  /|___|  \___/\____|__  / 
-        \/       \/                     \/  
-                    
-DISCORD :  https://discord.com/invite/xQF9f9yUEM                   
-YouTube : https://www.youtube.com/@GlaceYT                         
-
-Command Verified : ✓  
-Website        : ssrr.tech  
-Test Passed    : ✓
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-*/

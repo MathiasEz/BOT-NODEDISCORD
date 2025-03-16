@@ -1,88 +1,75 @@
-/*
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-                                                 
-  _________ ___ ___ ._______   _________    
- /   _____//   |   \|   \   \ /   /  _  \   
- \_____  \/    ~    \   |\   Y   /  /_\  \  
- /        \    Y    /   | \     /    |    \ 
-/_______  /\___|_  /|___|  \___/\____|__  / 
-        \/       \/                     \/  
-                    
-DISCORD :  https://discord.com/invite/xQF9f9yUEM                   
-YouTube : https://www.youtube.com/@GlaceYT                         
-
-Command Verified : ✓  
-Website        : ssrr.tech  
-Test Passed    : ✓
-
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-*/
-
-const { SlashCommandBuilder, EmbedBuilder } = require('@discordjs/builders');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
+const Canvas = require("canvas")
+const esLang = require("../../languages/es")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('friendship')
-        .setDescription(lang.friendshipDescription)
-        .addUserOption(option => 
-            option.setName('user')
-                .setDescription(lang.friendshipUserDescription)
-                .setRequired(true)),
+  data: new SlashCommandBuilder()
+    .setName("amistad")
+    .setDescription(esLang.friendshipDescription)
+    .addUserOption((option) =>
+      option.setName("usuario").setDescription(esLang.friendshipUserDescription).setRequired(true),
+    ),
 
-    async execute(interaction) {
-        if (interaction.isCommand && interaction.isCommand()) { 
-            await interaction.deferReply(); 
+  async execute(interaction) {
+    try {
+      const user1 = interaction.user
+      const user2 = interaction.options.getUser("usuario")
 
-            const user = interaction.options.getUser('user');
-            const friendshipRating = Math.floor(Math.random() * 101); 
+      if (!user2) {
+        return interaction.reply({ content: esLang.friendshipMentionError, ephemeral: true })
+      }
 
-            const embed = new EmbedBuilder()
-                .setColor(0x0000FF)
-                .setTitle(lang.friendshipTitle)
-                .setDescription(`${interaction.user} ${lang.friendshipWith} ${user} ${lang.friendshipRating} **${friendshipRating}%**!`)
-                .setFooter({ text: lang.friendshipFooter });
+      // Generar una calificación aleatoria
+      const rating = Math.floor(Math.random() * 101)
 
-            await interaction.editReply({ embeds: [embed] }); 
-        } else {
-            const mentions = interaction.mentions.users;
-            if (mentions.size < 2) {
-                return interaction.reply({ content: lang.friendshipMentionError, ephemeral: true });
-            }
+      // Crear un canvas para la imagen
+      const canvas = Canvas.createCanvas(700, 250)
+      const ctx = canvas.getContext("2d")
 
-            const user1 = mentions.first();
-            const user2 = mentions.at(1);
-            const friendshipRating = Math.floor(Math.random() * 101);
+      // Fondo
+      ctx.fillStyle = "#ffffff"
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-            const embed = new EmbedBuilder()
-                .setColor(0x0000FF)
-                .setTitle(lang.friendshipTitle)
-                .setDescription(`${user1} ${lang.friendshipWith} ${user2} ${lang.friendshipRating} **${friendshipRating}%**!`)
-                .setFooter({ text: lang.friendshipFooter });
+      // Cargar avatares
+      const avatar1 = await Canvas.loadImage(user1.displayAvatarURL({ extension: "png", size: 128 }))
+      const avatar2 = await Canvas.loadImage(user2.displayAvatarURL({ extension: "png", size: 128 }))
 
-            await interaction.reply({ embeds: [embed] });
-        } 
-    },
-};
+      // Dibujar avatares
+      ctx.drawImage(avatar1, 50, 25, 200, 200)
+      ctx.drawImage(avatar2, 450, 25, 200, 200)
 
-/*
+      // Dibujar corazón en el medio
+      ctx.fillStyle = "#FF0000"
+      ctx.font = "120px Arial"
+      ctx.textAlign = "center"
+      ctx.fillText("❤️", canvas.width / 2, 150)
 
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-                                                 
-  _________ ___ ___ ._______   _________    
- /   _____//   |   \|   \   \ /   /  _  \   
- \_____  \/    ~    \   |\   Y   /  /_\  \  
- /        \    Y    /   | \     /    |    \ 
-/_______  /\___|_  /|___|  \___/\____|__  / 
-        \/       \/                     \/  
-                    
-DISCORD :  https://discord.com/invite/xQF9f9yUEM                   
-YouTube : https://www.youtube.com/@GlaceYT                         
+      // Dibujar calificación
+      ctx.fillStyle = "#000000"
+      ctx.font = "30px Arial"
+      ctx.textAlign = "center"
+      ctx.fillText(`${rating}%`, canvas.width / 2, 200)
 
-Command Verified : ✓  
-Website        : ssrr.tech  
-Test Passed    : ✓
+      // Crear un embed con la imagen
+      const attachment = canvas.toBuffer()
 
-☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
-*/
+      const embed = new EmbedBuilder()
+        .setTitle(esLang.friendshipTitle)
+        .setDescription(
+          `La ${esLang.friendshipWith} ${user1.username} ${esLang.friendshipWith} ${user2.username} ${esLang.friendshipRating} **${rating}%**!`,
+        )
+        .setImage("attachment://friendship.png")
+        .setColor("#FF69B4")
+        .setFooter({ text: esLang.friendshipFooter })
+
+      await interaction.reply({
+        embeds: [embed],
+        files: [{ attachment, name: "friendship.png" }],
+      })
+    } catch (error) {
+      console.error("Error en el comando friendship:", error)
+      await interaction.reply({ content: esLang.friendshipMentionError, ephemeral: true })
+    }
+  },
+}
+

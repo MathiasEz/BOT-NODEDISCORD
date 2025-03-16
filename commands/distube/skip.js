@@ -1,94 +1,79 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('@discordjs/builders');
-const { DisTubeError } = require('distube');
-const musicIcons = require('../../UI/icons/musicicons');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('dskip')
-        .setDescription(lang.skipDescription),
+  data: new SlashCommandBuilder().setName("skip").setDescription("Salta la canción actual en la cola"),
 
-    async execute(interaction) {
-        const voiceChannel = interaction.member.voice.channel;
+  async execute(interaction, client) {
+    const lang = client.lang
 
-        if (!voiceChannel) {
-            return interaction.reply(lang.skipNoVoiceChannel);
-        }
+    // Verificar si el usuario está en un canal de voz
+    if (!interaction.member.voice.channel) {
+      return interaction.reply({
+        content: lang.skipNoVoiceChannel,
+        ephemeral: true,
+      })
+    }
 
-        const permissions = voiceChannel.permissionsFor(interaction.client.user);
-        if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-            return interaction.reply(lang.skipNoPermissions);
-        }
+    // Verificar permisos
+    const permissions = interaction.member.voice.channel.permissionsFor(interaction.client.user)
+    if (!permissions.has("Connect") || !permissions.has("Speak")) {
+      return interaction.reply({
+        content: lang.skipNoPermissions,
+        ephemeral: true,
+      })
+    }
 
-        try {
-            await interaction.reply(lang.skipInProgress);
+    // Verificar si hay una cola de reproducción
+    const queue = client.distube.getQueue(interaction.guildId)
+    if (!queue) {
+      const embed = new EmbedBuilder()
+        .setTitle(lang.skipNoQueueTitle)
+        .setDescription(lang.skipNoQueueMessage)
+        .setColor("Red")
 
-            // Skip the song
-            await interaction.client.distube.skip(voiceChannel);
+      return interaction.reply({ embeds: [embed], ephemeral: true })
+    }
 
-            // Check if there are songs left in the queue
-            const queue = interaction.client.distube.getQueue(interaction.guildId);
-            if (!queue || !queue.songs.length) {
-                const noSongsEmbed = new EmbedBuilder()
-                    .setColor(0x0000FF)
-                    .setAuthor({ 
-                        name: lang.skipNoSongsTitle, 
-                        iconURL: musicIcons.wrongIcon,
-                        url: "https://discord.gg/xQF9f9yUEM"
-                    })
-                    .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })   
-                    .setDescription(lang.skipNoSongsMessage);
+    // Verificar si hay más canciones en la cola
+    if (queue.songs.length <= 1) {
+      const embed = new EmbedBuilder()
+        .setTitle(lang.skipNoUpNextTitle)
+        .setDescription(lang.skipNoUpNextMessage)
+        .setColor("Red")
 
-                return interaction.reply({ embeds: [noSongsEmbed] });
-            }
+      return interaction.reply({ embeds: [embed], ephemeral: true })
+    }
 
-            // Get the next song
-            const nextSong = queue.songs[0];
-            const nextSongEmbed = new EmbedBuilder()
-                .setColor(0x0000FF)
-                .setAuthor({ 
-                    name: lang.skipSuccessTitle, 
-                    iconURL: musicIcons.skipIcon,
-                    url: "https://discord.gg/xQF9f9yUEM"
-                })
-                .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })  
-                .addFields(
-                    { name: lang.skipTitleField, value: nextSong.name },
-                    { name: lang.skipDurationField, value: nextSong.formattedDuration }
-                );
+    try {
+      // Informar al usuario que estamos saltando la canción
+      await interaction.reply({
+        content: lang.skipInProgress,
+      })
 
-            await interaction.reply({ embeds: [nextSongEmbed] });
-        } catch (error) {
-            console.error(error);
+      // Obtener la información de la canción actual antes de saltarla
+      const currentSong = queue.songs[0]
 
-            if (error instanceof DisTubeError && error.code === 'NO_QUEUE') {
-                const noQueueEmbed = new EmbedBuilder()
-                    .setColor(0x0000FF)
-                    .setAuthor({ 
-                        name: lang.skipNoQueueTitle, 
-                        iconURL: musicIcons.wrongIcon,
-                        url: "https://discord.gg/xQF9f9yUEM"
-                    })
-                    .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })  
-                    .setDescription(lang.skipNoQueueMessage);
+      // Saltar la canción
+      await queue.skip()
 
-                await interaction.reply({ embeds: [noQueueEmbed] });
-            } else if (error instanceof DisTubeError && error.code === 'NO_UP_NEXT') {
-                const noUpNextEmbed = new EmbedBuilder()
-                    .setColor(0x0000FF)
-                    .setAuthor({ 
-                        name: lang.skipNoUpNextTitle, 
-                        iconURL: musicIcons.wrongIcon,
-                        url: "https://discord.gg/xQF9f9yUEM"
-                    })
-                    .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })  
-                    .setDescription(lang.skipNoUpNextMessage);
+      // Crear un embed con la información de la canción saltada
+      const embed = new EmbedBuilder()
+        .setTitle(lang.skipSuccessTitle)
+        .addFields(
+          { name: lang.skipTitleField, value: currentSong.name, inline: false },
+          { name: lang.skipDurationField, value: currentSong.formattedDuration, inline: true },
+        )
+        .setThumbnail(currentSong.thumbnail)
+        .setColor("#3498db")
 
-                await interaction.reply({ embeds: [noUpNextEmbed] });
-            } else {
-                const errorMessage = lang.skipErrorMessage;
-                await interaction.reply(errorMessage);
-            }
-        }
-    },
-};
+      await interaction.editReply({ content: "", embeds: [embed] })
+    } catch (error) {
+      console.error("Error en el comando skip:", error)
+      await interaction.followUp({
+        content: lang.skipErrorMessage,
+        ephemeral: true,
+      })
+    }
+  },
+}
+

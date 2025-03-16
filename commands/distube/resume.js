@@ -1,114 +1,72 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('@discordjs/builders');
-const { DisTubeError } = require('distube');
-const musicIcons = require('../../UI/icons/musicicons');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('dresume')
-        .setDescription(lang.resumeDescription),
+  data: new SlashCommandBuilder().setName("resume").setDescription("Reanuda la canción pausada"),
 
-    async execute(interaction) {
-        const voiceChannel = interaction.member.voice.channel;
+  async execute(interaction, client) {
+    const lang = client.lang
 
-        if (!voiceChannel) {
-            return interaction.reply(lang.resumeNoVoiceChannel);
-        }
+    // Verificar si el usuario está en un canal de voz
+    if (!interaction.member.voice.channel) {
+      return interaction.reply({
+        content: lang.resumeNoVoiceChannel,
+        ephemeral: true,
+      })
+    }
 
-        const permissions = voiceChannel.permissionsFor(interaction.client.user);
-        if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-            return interaction.reply(lang.resumeNoPermissions);
-        }
+    // Verificar permisos
+    const permissions = interaction.member.voice.channel.permissionsFor(interaction.client.user)
+    if (!permissions.has("Connect") || !permissions.has("Speak")) {
+      return interaction.reply({
+        content: lang.resumeNoPermissions,
+        ephemeral: true,
+      })
+    }
 
-        try {
-            await interaction.reply(lang.resumeInProgress);
+    // Verificar si hay una cola de reproducción
+    const queue = client.distube.getQueue(interaction.guildId)
+    if (!queue) {
+      const embed = new EmbedBuilder()
+        .setTitle(lang.resumeNoQueueTitle)
+        .setDescription(lang.resumeNoQueueMessage)
+        .setColor("Red")
 
-            // Resume the song
-            await interaction.client.distube.resume(voiceChannel);
+      return interaction.reply({ embeds: [embed], ephemeral: true })
+    }
 
-            const resumedEmbed = new EmbedBuilder()
-                .setColor(0x0000FF)
-                .setAuthor({ 
-                    name: lang.resumeSuccessTitle, 
-                    iconURL: musicIcons.pauseresumeIcon,
-                    url: "https://discord.gg/xQF9f9yUEM"
-                })
-                .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })
-                .setDescription(lang.resumeSuccessMessage);
+    try {
+      // Verificar si la canción está pausada
+      if (!queue.paused) {
+        const embed = new EmbedBuilder()
+          .setTitle(lang.resumeNotPausedTitle)
+          .setDescription(lang.resumeNotPausedMessage)
+          .setColor("Red")
 
-            if (interaction.isCommand && interaction.isCommand()) {
-                await interaction.editReply({ embeds: [resumedEmbed] });
-            } else {
-                await interaction.reply({ embeds: [resumedEmbed] });
-            }
-        } catch (error) {
-            console.error(error);
+        return interaction.reply({ embeds: [embed], ephemeral: true })
+      }
 
-            if (error instanceof DisTubeError) {
-                if (error.code === 'NO_QUEUE') {
-                    const noQueueEmbed = new EmbedBuilder()
-                        .setColor(0x0000FF)
-                        .setAuthor({ 
-                            name: lang.resumeNoQueueTitle, 
-                            iconURL: musicIcons.wrongIcon,
-                            url: "https://discord.gg/xQF9f9yUEM"
-                        })
-                        .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })
-                        .setDescription(lang.resumeNoQueueMessage);
+      // Informar al usuario que estamos reanudando la canción
+      await interaction.reply({
+        content: lang.resumeInProgress,
+      })
 
-                    if (interaction.isCommand && interaction.isCommand()) {
-                        await interaction.editReply({ embeds: [noQueueEmbed] });
-                    } else {
-                        await interaction.reply({ embeds: [noQueueEmbed] });
-                    }
-                } else if (error.code === 'NOT_PAUSED') {
-                    const notPausedEmbed = new EmbedBuilder()
-                        .setColor(0x0000FF)
-                        .setAuthor({ 
-                            name: lang.resumeNotPausedTitle, 
-                            iconURL: musicIcons.wrongIcon,
-                            url: "https://discord.gg/xQF9f9yUEM"
-                        })
-                        .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })
-                        .setDescription(lang.resumeNotPausedMessage);
+      // Reanudar la canción
+      queue.resume()
 
-                    if (interaction.isCommand && interaction.isCommand()) {
-                        await interaction.editReply({ embeds: [notPausedEmbed] });
-                    } else {
-                        await interaction.reply({ embeds: [notPausedEmbed] });
-                    }
-                } else if (error.code === 'RESUMED') {
-                    const alreadyResumedEmbed = new EmbedBuilder()
-                        .setColor(0x0000FF)
-                        .setAuthor({ 
-                            name: lang.resumeAlreadyResumedTitle, 
-                            iconURL: musicIcons.wrongIcon,
-                            url: "https://discord.gg/xQF9f9yUEM"
-                        })
-                        .setFooter({ text: 'Distube Player', iconURL: musicIcons.footerIcon })
-                        .setDescription(lang.resumeAlreadyResumedMessage);
+      // Crear un embed con la confirmación
+      const embed = new EmbedBuilder()
+        .setTitle(lang.resumeSuccessTitle)
+        .setDescription(lang.resumeSuccessMessage)
+        .setColor("#3498db")
 
-                    if (interaction.isCommand && interaction.isCommand()) {
-                        await interaction.editReply({ embeds: [alreadyResumedEmbed] });
-                    } else {
-                        await interaction.reply({ embeds: [alreadyResumedEmbed] });
-                    }
-                } else {
-                    const errorMessage = lang.resumeErrorMessage;
-                    if (interaction.isCommand && interaction.isCommand()) {
-                        await interaction.editReply(errorMessage);
-                    } else {
-                        await interaction.reply(errorMessage);
-                    }
-                }
-            } else {
-                const errorMessage = lang.resumeErrorMessage;
-                if (interaction.isCommand && interaction.isCommand()) {
-                    await interaction.editReply(errorMessage);
-                } else {
-                    await interaction.reply(errorMessage);
-                }
-            }
-        }
-    },
-};
+      await interaction.editReply({ content: "", embeds: [embed] })
+    } catch (error) {
+      console.error("Error en el comando resume:", error)
+      await interaction.followUp({
+        content: lang.resumeErrorMessage,
+        ephemeral: true,
+      })
+    }
+  },
+}
+

@@ -1,83 +1,70 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
-const musicIcons = require('../../UI/icons/musicicons');
-const cmdIcons = require('../../UI/icons/commandicons');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('dvolume')
-        .setDescription(lang.volumeDescription)
-        .addIntegerOption(option =>
-            option.setName('level')
-                .setDescription(lang.volumeLevelDescription)
-                .setRequired(true)),
+  data: new SlashCommandBuilder()
+    .setName("volume")
+    .setDescription("Establece el volumen del reproductor de música")
+    .addIntegerOption((option) =>
+      option
+        .setName("level")
+        .setDescription("Nivel de volumen entre 1 y 100")
+        .setRequired(true)
+        .setMinValue(1)
+        .setMaxValue(100),
+    ),
 
-    async execute(interaction) {
-        if (interaction.isCommand && interaction.isCommand()) {
-            await interaction.deferReply();
-            const volumeLevel = interaction.options.getInteger('level');
-            await this.setVolume(interaction, volumeLevel);
-        } else {
-            const embed = new EmbedBuilder()
-                .setColor('#3498db')
-                .setAuthor({
-                    name: lang.volumeAlertTitle,
-                    iconURL: cmdIcons.dotIcon,
-                    url: "https://discord.gg/xQF9f9yUEM"
-                })
-                .setDescription(lang.volumeAlertMessage)
-                .setTimestamp();
+  async execute(interaction, client) {
+    const lang = client.lang
 
-            await interaction.reply({ embeds: [embed] });
-        }
-    },
+    // Verificar si el usuario está en un canal de voz
+    if (!interaction.member.voice.channel) {
+      return interaction.reply({
+        content: lang.volumeNoVoiceChannel,
+        ephemeral: true,
+      })
+    }
 
-    async setVolume(source, volumeLevel) {
-        try {
-            const voiceChannel = source.member.voice.channel;
+    // Verificar permisos
+    const permissions = interaction.member.voice.channel.permissionsFor(interaction.client.user)
+    if (!permissions.has("Connect") || !permissions.has("Speak")) {
+      return interaction.reply({
+        content: lang.volumeNoPermissions,
+        ephemeral: true,
+      })
+    }
 
-            if (!voiceChannel) {
-                return source.channel.send(lang.volumeNoVoiceChannel);
-            }
+    // Verificar si hay una canción reproduciéndose
+    const queue = client.distube.getQueue(interaction.guildId)
+    if (!queue) {
+      const embed = new EmbedBuilder()
+        .setTitle(lang.volumeNoSongTitle)
+        .setDescription(lang.volumeNoSongMessage)
+        .setColor("Red")
 
-            const permissions = voiceChannel.permissionsFor(source.client.user);
-            if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-                return source.channel.send(lang.volumeNoPermissions);
-            }
+      return interaction.reply({ embeds: [embed], ephemeral: true })
+    }
 
-            const queue = source.client.distube.getQueue(source.guildId);
-            if (!queue || !queue.playing) {
-                const noSongEmbed = new EmbedBuilder()
-                    .setColor(0x0000FF)
-                    .setAuthor({
-                        name: lang.volumeNoSongTitle,
-                        iconURL: musicIcons.wrongIcon,
-                        url: "https://discord.gg/xQF9f9yUEM"
-                    })
-                    .setFooter({ text: 'DisTube Player', iconURL: musicIcons.footerIcon })
-                    .setDescription(lang.volumeNoSongMessage);
+    // Obtener el nivel de volumen
+    const volumeLevel = interaction.options.getInteger("level")
 
-                return source.channel.send({ embeds: [noSongEmbed] });
-            }
+    try {
+      // Establecer el volumen
+      queue.setVolume(volumeLevel)
 
-            queue.setVolume(volumeLevel);
+      // Crear un embed con la confirmación
+      const embed = new EmbedBuilder()
+        .setTitle(lang.volumeSuccessTitle)
+        .setDescription(lang.volumeSuccessMessage.replace("{volumeLevel}", volumeLevel))
+        .setColor("#3498db")
 
-            const volumeEmbed = new EmbedBuilder()
-                .setColor(0x0000FF)
-                .setAuthor({
-                    name: lang.volumeSuccessTitle,
-                    iconURL: musicIcons.volumeIcon,
-                    url: "https://discord.gg/xQF9f9yUEM"
-                })
-                .setDescription(lang.volumeSuccessMessage.replace('{volumeLevel}', volumeLevel))
-                .setFooter({ text: 'DisTube Player', iconURL: musicIcons.footerIcon });
+      await interaction.reply({ embeds: [embed] })
+    } catch (error) {
+      console.error("Error en el comando volume:", error)
+      await interaction.reply({
+        content: lang.volumeErrorMessage,
+        ephemeral: true,
+      })
+    }
+  },
+}
 
-            return source.channel.send({ embeds: [volumeEmbed] });
-        } catch (error) {
-            console.error(error);
-
-            return source.channel.send(lang.volumeErrorMessage);
-        }
-    },
-};

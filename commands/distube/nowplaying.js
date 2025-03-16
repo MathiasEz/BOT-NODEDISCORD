@@ -1,34 +1,33 @@
-const { SlashCommandBuilder } = require("@discordjs/builders")
-const { EmbedBuilder } = require("discord.js")
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("nowplaying")
     .setDescription("Muestra información sobre la canción actual")
-    .addStringOption((option) => option.setName("options").setDescription("Opciones adicionales").setRequired(false)),
-
+    .setNameLocalizations({
+      "es-ES": "reproduciendo",
+    })
+    .setDescriptionLocalizations({
+      "es-ES": "Muestra información sobre la canción actual",
+    }),
+  category: "distube",
   async execute(interaction, client) {
     const queue = client.distube.getQueue(interaction)
-
-    if (!queue) {
-      return interaction.reply({
-        content: "⛔ | ¡No hay canciones reproduciéndose actualmente!",
-        ephemeral: true,
-      })
-    }
+    if (!queue) return interaction.reply({ content: "¡No hay nada reproduciéndose ahora mismo!", ephemeral: true })
 
     const song = queue.songs[0]
     const embed = new EmbedBuilder()
+      .setColor("#0099ff")
       .setTitle("🎵 Reproduciendo ahora")
-      .setDescription(`**${song.name}**`)
+      .setDescription(`[${song.name}](${song.url})`)
+      .setThumbnail(song.thumbnail)
       .addFields(
         { name: "Duración", value: `\`${song.formattedDuration}\``, inline: true },
-        { name: "Solicitado por", value: `${song.user}`, inline: true },
+        { name: "Solicitada por", value: `${song.user}`, inline: true },
         { name: "Canal", value: `[${song.uploader.name}](${song.uploader.url})`, inline: true },
       )
-      .setThumbnail(song.thumbnail)
-      .setColor("#3498db")
-      .setFooter({ text: `Volumen: ${queue.volume}% | Filtros: ${queue.filters.names.join(", ") || "Ninguno"}` })
+      .setFooter({ text: `Vistas: ${song.views} | Likes: ${song.likes}` })
+      .setTimestamp()
 
     await interaction.reply({ embeds: [embed] })
   },

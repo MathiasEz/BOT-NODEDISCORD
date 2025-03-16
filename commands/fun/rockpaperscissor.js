@@ -19,66 +19,66 @@ Test Passed    : ✓
 ☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
 */
 
-
-const { SlashCommandBuilder, EmbedBuilder } = require('@discordjs/builders');
-const lang = require('../../events/loadLanguage'); 
+const { SlashCommandBuilder, EmbedBuilder } = require("@discordjs/builders")
+const lang = require("../../events/loadLanguage")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('rockpaperscissor')
-        .setDescription(lang.rockPaperScissorsCommandDescription)
-        .addStringOption(option =>
-            option.setName('choice')
-                .setDescription(lang.rockPaperScissorsChoiceDescription)
-                .setRequired(true)),
-    
-    async execute(interaction) {
-        let userChoice;
-        let botChoice;
-        let result;
+  data: new SlashCommandBuilder()
+    .setName("rockpaperscissor")
+    .setDescription(lang.rockPaperScissorsCommandDescription)
+    .addStringOption((option) =>
+      option.setName("choice").setDescription(lang.rockPaperScissorsChoiceDescription).setRequired(true),
+    ),
 
-        if (interaction.isCommand && interaction.isCommand()) {
-            userChoice = interaction.options.getString('choice').toLowerCase();
-        } else {
-            const message = interaction;
-            userChoice = message.content.split(' ').slice(1).join(' ').toLowerCase();
-        }
+  async execute(interaction) {
+    let userChoice
+    let botChoice
+    let result
 
-        const choices = ['rock', 'paper', 'scissors'];
-        botChoice = choices[Math.floor(Math.random() * choices.length)];
+    if (interaction.isCommand && interaction.isCommand()) {
+      userChoice = interaction.options.getString("choice").toLowerCase()
+    } else {
+      const message = interaction
+      userChoice = message.content.split(" ").slice(1).join(" ").toLowerCase()
+    }
 
-        if (!choices.includes(userChoice)) {
-            return interaction.reply(lang.rockPaperScissorsInvalidChoice);
-        }
+    const choices = ["rock", "paper", "scissors"]
+    botChoice = choices[Math.floor(Math.random() * choices.length)]
 
-        if (userChoice === botChoice) {
-            result = lang.rockPaperScissorsTie;
-        } else if (
-            (userChoice === 'rock' && botChoice === 'scissors') ||
-            (userChoice === 'paper' && botChoice === 'rock') ||
-            (userChoice === 'scissors' && botChoice === 'paper')
-        ) {
-            result = lang.rockPaperScissorsWin;
-        } else {
-            result = lang.rockPaperScissorsLose;
-        }
+    if (!choices.includes(userChoice)) {
+      return interaction.reply(lang.rockPaperScissorsInvalidChoice)
+    }
 
-        const embed = new EmbedBuilder()
-            .setColor(0x0000FF)
-            .setTitle(lang.rockPaperScissorsTitle)
-            .setDescription(lang.rockPaperScissorsResult
-                .replace('{userChoice}', userChoice)
-                .replace('{botChoice}', botChoice)
-                .replace('{result}', result))
-            .setTimestamp();
+    if (userChoice === botChoice) {
+      result = lang.rockPaperScissorsTie
+    } else if (
+      (userChoice === "rock" && botChoice === "scissors") ||
+      (userChoice === "paper" && botChoice === "rock") ||
+      (userChoice === "scissors" && botChoice === "paper")
+    ) {
+      result = lang.rockPaperScissorsWin
+    } else {
+      result = lang.rockPaperScissorsLose
+    }
 
-        if (interaction.isCommand && interaction.isCommand()) {
-            await interaction.reply({ embeds: [embed] });
-        } else {
-            await interaction.reply({ embeds: [embed] });
-        }
-    },
-};
+    const embed = new EmbedBuilder()
+      .setColor(0x0000ff)
+      .setTitle(lang.rockPaperScissorsTitle)
+      .setDescription(
+        lang.rockPaperScissorsResult
+          .replace("{userChoice}", userChoice)
+          .replace("{botChoice}", botChoice)
+          .replace("{result}", result),
+      )
+      .setTimestamp()
+
+    if (interaction.isCommand && interaction.isCommand()) {
+      await interaction.reply({ embeds: [embed] })
+    } else {
+      await interaction.reply({ embeds: [embed] })
+    }
+  },
+}
 
 /*
 
@@ -100,3 +100,4 @@ Test Passed    : ✓
 
 ☆.。.:*・°☆.。.:*・°☆.。.:*・°☆.。.:*・°☆
 */
+

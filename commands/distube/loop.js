@@ -1,118 +1,85 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('@discordjs/builders');
-const { DisTubeError } = require('distube');
-const musicIcons = require('../../UI/icons/musicicons');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('dloop')
-        .setDescription(lang.loopDescription)
-        .addStringOption(option =>
-            option.setName('mode')
-                .setDescription(lang.loopModeDescription)
-                .setRequired(false)),
+  data: new SlashCommandBuilder()
+    .setName("loop")
+    .setDescription("Activa el bucle para la canción actual o toda la cola")
+    .addStringOption((option) =>
+      option
+        .setName("mode")
+        .setDescription('Modo de bucle: "queue" o "song"')
+        .setRequired(true)
+        .addChoices(
+          { name: "Desactivar", value: "off" },
+          { name: "Canción", value: "song" },
+          { name: "Cola", value: "queue" },
+        ),
+    ),
 
-    async execute(interaction) {
-        if (interaction.isCommand && interaction.isCommand()) {
-            await interaction.deferReply();
-        }
+  async execute(interaction, client) {
+    const lang = client.lang
 
-        try {
-            await executeLoop(interaction);
-        } catch (error) {
-            console.error(error);
-            const errorMessage = lang.loopError;
-            await interaction.editReply(errorMessage);
-        }
-    },
-
-    async executePrefix(message, args) {
-        try {
-            await executeLoop(message);
-        } catch (error) {
-            console.error(error);
-            const errorMessage = lang.loopError;
-            await message.channel.send(errorMessage);
-        }
-    },
-};
-
-async function executeLoop(source) {
-    const voiceChannel = source.member.voice.channel;
-
-    if (!voiceChannel) {
-        const errorMessage = lang.loopNoVoiceChannel;
-        if (source.isCommand && source.isCommand()) {
-            return source.editReply(errorMessage);
-        } else {
-            return source.channel.send(errorMessage);
-        }
+    // Verificar si el usuario está en un canal de voz
+    if (!interaction.member.voice.channel) {
+      return interaction.reply({
+        content: lang.loopNoVoiceChannel,
+        ephemeral: true,
+      })
     }
 
-    const permissions = voiceChannel.permissionsFor(source.client.user);
-    if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-        const permissionMessage = lang.loopNoPermissions;
-        if (source.isCommand && source.isCommand()) {
-            return source.editReply(permissionMessage);
-        } else {
-            return source.channel.send(permissionMessage);
-        }
+    // Verificar permisos
+    const permissions = interaction.member.voice.channel.permissionsFor(interaction.client.user)
+    if (!permissions.has("Connect") || !permissions.has("Speak")) {
+      return interaction.reply({
+        content: lang.loopNoPermissions,
+        ephemeral: true,
+      })
     }
 
-    const loopMode = source.options?.getString('mode') || (source.content.split(/\s+/)[1] || '').toLowerCase();
-
-    const guildId = source.guildId;
-    const queue = source.client.distube.getQueue(guildId);
-
+    // Verificar si hay una cola de reproducción
+    const queue = client.distube.getQueue(interaction.guildId)
     if (!queue) {
-        const noQueueEmbed = new EmbedBuilder()
-            .setColor(0x0000FF)
-            .setAuthor({ 
-                name: lang.loopNoQueueTitle, 
-                iconURL: musicIcons.wrongIcon,
-                url: "https://discord.gg/xQF9f9yUEM"
-            })
-            .setFooter({ text: lang.loopFooterText, iconURL: musicIcons.footerIcon })
-            .setDescription(lang.loopNoQueue);
+      const embed = new EmbedBuilder().setTitle(lang.loopNoQueueTitle).setDescription(lang.loopNoQueue).setColor("Red")
 
-        if (source.isCommand && source.isCommand()) {
-            return source.editReply({ embeds: [noQueueEmbed] });
-        } else {
-            return source.channel.send({ embeds: [noQueueEmbed] });
-        }
+      return interaction.reply({ embeds: [embed], ephemeral: true })
     }
 
-    const toggleLoopEmbed = new EmbedBuilder()
-        .setColor(0x0000FF)
-        .setFooter({ text: lang.loopFooterText, iconURL: musicIcons.footerIcon })
-        .setAuthor({ 
-            name: lang.loopTitle, 
-            iconURL: musicIcons.loopIcon,
-            url: "https://discord.gg/xQF9f9yUEM"
-        });
+    try {
+      // Obtener el modo de bucle
+      const mode = interaction.options.getString("mode")
+      let modeValue = 0
+      let modeText = ""
 
-    if (loopMode === 'queue') {
-        await source.client.distube.setRepeatMode(guildId, 2);
-        toggleLoopEmbed.setDescription(lang.loopQueueEnabled);
-    } else if (loopMode === 'song') {
-        await source.client.distube.setRepeatMode(guildId, 1);
-        toggleLoopEmbed.setDescription(lang.loopSongEnabled);
-    } else {
-        if (queue.repeatMode === 1) {
-            await source.client.distube.setRepeatMode(guildId, 0);
-            toggleLoopEmbed.setDescription(lang.loopDisabled);
-        } else if (queue.repeatMode === 0) {
-            await source.client.distube.setRepeatMode(guildId, 1);
-            toggleLoopEmbed.setDescription(lang.loopSongEnabled);
-        } else {
-            await source.client.distube.setRepeatMode(guildId, 0);
-            toggleLoopEmbed.setDescription(lang.loopDisabled);
-        }
-    }
+      // Establecer el modo de bucle
+      if (mode === "off") {
+        modeValue = 0
+        modeText = lang.loopDisabled
+      } else if (mode === "song") {
+        modeValue = 1
+        modeText = lang.loopSongEnabled
+      } else if (mode === "queue") {
+        modeValue = 2
+        modeText = lang.loopQueueEnabled
+      }
 
-    if (source.isCommand && source.isCommand()) {
-        await source.editReply({ embeds: [toggleLoopEmbed] });
-    } else {
-        await source.channel.send({ embeds: [toggleLoopEmbed] });
+      // Aplicar el modo de bucle
+      queue.setRepeatMode(modeValue)
+
+      // Crear un embed con la confirmación
+      const embed = new EmbedBuilder()
+        .setTitle(lang.loopTitle)
+        .setDescription(modeText)
+        .setColor("#3498db")
+        .setFooter({ text: lang.loopFooterText })
+
+      await interaction.reply({ embeds: [embed] })
+    } catch (error) {
+      console.error("Error en el comando loop:", error)
+      await interaction.reply({
+        content: lang.loopError,
+        ephemeral: true,
+      })
     }
+  },
 }
+

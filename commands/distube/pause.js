@@ -1,111 +1,73 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('@discordjs/builders');
-const { DisTubeError } = require('distube');
-const musicIcons = require('../../UI/icons/musicicons');
-const lang = require('../../events/loadLanguage');
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('dpause')
-        .setDescription(lang.pauseDescription),
+  data: new SlashCommandBuilder().setName("pause").setDescription("Pausa la canción actual"),
 
-    async execute(interaction) {
-        const voiceChannel = interaction.member.voice.channel;
+  async execute(interaction, client) {
+    const lang = client.lang
 
-        if (!voiceChannel) {
-            return interaction.reply(lang.pauseNoVoiceChannel);
-        }
+    // Verificar si el usuario está en un canal de voz
+    if (!interaction.member.voice.channel) {
+      return interaction.reply({
+        content: lang.pauseNoVoiceChannel,
+        ephemeral: true,
+      })
+    }
 
-        const permissions = voiceChannel.permissionsFor(interaction.client.user);
-        if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-            return interaction.reply(lang.pauseNoPermissions);
-        }
+    // Verificar permisos
+    const permissions = interaction.member.voice.channel.permissionsFor(interaction.client.user)
+    if (!permissions.has("Connect") || !permissions.has("Speak")) {
+      return interaction.reply({
+        content: lang.pauseNoPermissions,
+        ephemeral: true,
+      })
+    }
 
-        try {
-            await interaction.reply(lang.pauseInProgress);
+    // Verificar si hay una cola de reproducción
+    const queue = client.distube.getQueue(interaction.guildId)
+    if (!queue) {
+      const embed = new EmbedBuilder()
+        .setTitle(lang.pauseNoQueueTitle)
+        .setDescription(lang.pauseNoQueue)
+        .setColor("Red")
 
-            // Pause the song
-            await interaction.client.distube.pause(voiceChannel);
+      return interaction.reply({ embeds: [embed], ephemeral: true })
+    }
 
-            const pausedEmbed = new EmbedBuilder()
-                .setColor(0x0000FF)
-                .setAuthor({ 
-                    name: lang.pauseTitle, 
-                    iconURL: musicIcons.pauseresumeIcon,
-                    url: "https://discord.gg/xQF9f9yUEM"
-                })
-                .setFooter({ text: lang.pauseFooterText, iconURL: musicIcons.footerIcon })
-                .setDescription(lang.pauseSuccess);
-                
-            if (interaction.isCommand && interaction.isCommand()) {
-                await interaction.editReply({ embeds: [pausedEmbed] });
-            } else {
-                await interaction.reply({ embeds: [pausedEmbed] });
-            }
-        } catch (error) {
-            console.error(error);
+    try {
+      // Verificar si la canción ya está pausada
+      if (queue.paused) {
+        const embed = new EmbedBuilder()
+          .setTitle(lang.pauseAlreadyPausedTitle)
+          .setDescription(lang.pauseAlreadyPaused)
+          .setColor("Red")
 
-            if (error instanceof DisTubeError) {
-                let embed;
-                switch (error.code) {
-                    case 'NO_QUEUE':
-                        embed = new EmbedBuilder()
-                            .setColor(0x0000FF)
-                            .setAuthor({ 
-                                name: lang.pauseNoQueueTitle, 
-                                iconURL: musicIcons.wrongIcon,
-                                url: "https://discord.gg/xQF9f9yUEM"
-                            })
-                            .setFooter({ text: lang.pauseFooterText, iconURL: musicIcons.footerIcon })
-                            .setDescription(lang.pauseNoQueue);
-                        break;
-                    case 'NOT_PAUSED':
-                        embed = new EmbedBuilder()
-                            .setColor(0x0000FF)
-                            .setAuthor({ 
-                                name: lang.pauseNotPausedTitle, 
-                                iconURL: musicIcons.wrongIcon,
-                                url: "https://discord.gg/xQF9f9yUEM"
-                            })
-                            .setFooter({ text: lang.pauseFooterText, iconURL: musicIcons.footerIcon })
-                            .setDescription(lang.pauseNotPaused);
-                        break;
-                    case 'PAUSED':
-                        embed = new EmbedBuilder()
-                            .setColor(0x0000FF)
-                            .setAuthor({ 
-                                name: lang.pauseAlreadyPausedTitle, 
-                                iconURL: musicIcons.wrongIcon,
-                                url: "https://discord.gg/xQF9f9yUEM"
-                            })
-                            .setFooter({ text: lang.pauseFooterText, iconURL: musicIcons.footerIcon })
-                            .setDescription(lang.pauseAlreadyPaused);
-                        break;
-                    default:
-                        embed = new EmbedBuilder()
-                            .setColor(0x0000FF)
-                            .setAuthor({ 
-                                name: lang.pauseErrorTitle, 
-                                iconURL: musicIcons.wrongIcon,
-                                url: "https://discord.gg/xQF9f9yUEM"
-                            })
-                            .setFooter({ text: lang.pauseFooterText, iconURL: musicIcons.footerIcon })
-                            .setDescription(lang.pauseError);
-                        break;
-                }
+        return interaction.reply({ embeds: [embed], ephemeral: true })
+      }
 
-                if (interaction.isCommand && interaction.isCommand()) {
-                    await interaction.editReply({ embeds: [embed] });
-                } else {
-                    await interaction.reply({ embeds: [embed] });
-                }
-            } else {
-                const errorMessage = lang.pauseError;
-                if (interaction.isCommand && interaction.isCommand()) {
-                    await interaction.editReply(errorMessage);
-                } else {
-                    await interaction.reply(errorMessage);
-                }
-            }
-        }
-    },
-};
+      // Informar al usuario que estamos pausando la canción
+      await interaction.reply({
+        content: lang.pauseInProgress,
+      })
+
+      // Pausar la canción
+      queue.pause()
+
+      // Crear un embed con la confirmación
+      const embed = new EmbedBuilder()
+        .setTitle(lang.pauseTitle)
+        .setDescription(lang.pauseSuccess)
+        .setColor("#3498db")
+        .setFooter({ text: lang.pauseFooterText })
+
+      await interaction.editReply({ content: "", embeds: [embed] })
+    } catch (error) {
+      console.error("Error en el comando pause:", error)
+
+      const embed = new EmbedBuilder().setTitle(lang.pauseErrorTitle).setDescription(lang.pauseError).setColor("Red")
+
+      await interaction.followUp({ embeds: [embed], ephemeral: true })
+    }
+  },
+}
+
